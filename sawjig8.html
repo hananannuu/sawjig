@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SAWJIG - Puzzle Wrong</title>
+  <style>
+    :root {
+      --primary: #FF6B6B;
+      --secondary: #4ECDC4;
+      --accent: #FFE66D;
+      --dark: #292F36;
+      --light: #F7FFF7;
+    }
+    
+    body {
+      margin: 0;
+      font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif;
+      background-color: var(--light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--dark);
+    }
+    
+    header {
+      text-align: center;
+      margin: 20px 0;
+      width: 100%;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      margin: 0;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .subtitle {
+      font-style: italic;
+      color: var(--dark);
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+    
+    #main-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px;
+      max-width: 1200px;
+      width: 100%;
+    }
+    
+    #game-area {
+      display: flex;
+      gap: 20px;
+    }
+    
+    #puzzle-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    #puzzle-board {
+      display: grid;
+      gap: 0;
+      border: 8px solid var(--dark);
+      border-radius: 8px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      background-color: white;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .dropzone {
+      background-color: #f0f0f0;
+      transition: background-color 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    
+    .dropzone::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 1px dashed rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+    
+    .dropzone.highlight {
+      background-color: var(--accent);
+    }
+    
+    .dropzone.occupied {
+      background-color: rgba(240, 240, 240, 0.5);
+    }
+    
+    #piece-bank {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+      gap: 10px;
+      width: 150px;
+      padding: 15px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      align-self: flex-start;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .piece {
+      background-color: transparent;
+      background-size: cover;
+      background-position: center;
+      cursor: grab;
+      transition: all 0.3s ease;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transform-origin: center;
+    }
+    
+    .piece:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    
+    .piece:active {
+      cursor: grabbing;
+      z-index: 100;
+      transform: scale(1.1);
+    }
+    
+    .dropzone .piece {
+      width: 100% !important;
+      height: 100% !important;
+      box-shadow: none;
+    }
+    
+    #controls {
+      display: flex;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    #submit-btn {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    #reset-btn {
+      background-color: var(--dark);
+      color: white;
+    }
+    
+    #play-again-btn {
+      background-color: var(--secondary);
+      color: white;
+      display: none;
+    }
+    
+    #image-selector {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      width: 200px;
+    }
+    
+    #preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .preset-button {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background-color: var(--dark);
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      overflow: hidden;
+    }
+    
+    .preset-button:hover {
+      transform: scale(1.05);
+      background-color: var(--primary);
+    }
+    
+    .preset-button.selected {
+      border-color: var(--accent);
+      background-color: var(--secondary);
+    }
+    
+    .preset-button img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    
+    .preset-button.show-image img {
+      display: block;
+    }
+    
+    .preset-button.show-image span {
+      display: none;
+    }
+    
+    #cat-reaction {
+      width: 120px;
+      height: 120px;
+      margin: 10px auto;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: all 0.5s ease;
+    }
+    
+    #result-message {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0;
+      min-height: 36px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    #grid-controls {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    select {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 2px solid var(--dark);
+      font-size: 14px;
+    }
+    
+    .instructions {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--dark);
+      opacity: 0.7;
+      text-align: center;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    
+    .animate-cat {
+      animation: bounce 0.5s ease;
+    }
+    
+    @media (max-width: 900px) {
+      #main-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      #game-area {
+        flex-direction: column;
+      }
+      
+      #piece-bank {
+        width: 100%;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      }
+      
+      #image-selector {
+        width: 100%;
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>SAWJIG</h1>
+    <div class="subtitle">The purr-fect puzzle experience</div>
+    <div class="subtitle">WRONG SOLVE!</div>
+  </header>
+
+  <div id="main-container">
+    <div id="game-area">
+      <div id="piece-bank"></div>
+      
+      <div id="puzzle-section">
+        <div id="grid-controls">
+          <label for="gridSize">Puzzle Size:</label>
+          <select id="gridSize"></select>
+        </div>
+        
+        <div id="cat-reaction"></div>
+        <div id="result-message"></div>
+        
+        <div id="puzzle-board"></div>
+        
+        <div id="controls">
+          <button id="submit-btn">Check Solution</button>
+          <button id="reset-btn">Reset</button>
+          <button id="play-again-btn">Play Again</button>
+        </div>
+        
+        <div class="instructions">
+          Use arrow keys to rotate selected piece
+        </div>
+      </div>
+    </div>
+    
+    <div id="image-selector">
+      <h3>Choose Image:</h3>
+      <div id="preset-buttons"></div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const board = document.getElementById("puzzle-board");
+    const bank = document.getElementById("piece-bank");
+    const reaction = document.getElementById("cat-reaction");
+    const resultMessage = document.getElementById("result-message");
+    const gridSizeSelect = document.getElementById("gridSize");
+    const submitBtn = document.getElementById("submit-btn");
+    const resetBtn = document.getElementById("reset-btn");
+    const playAgainBtn = document.getElementById("play-again-btn");
+    const presetContainer = document.getElementById("preset-buttons");
+
+    // Game Configuration
+    const CAT_REACTIONS = {
+      neutral: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTaXuO_0mvUDvonYUyymE1vjhFZnpcl8Mslxg&s",
+      correct: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9YtkVBS3u5cbvve6k8ElNOkLXCEixS3fmbA&s",
+      incorrect: "https://www.shutterstock.com/image-photo/shorthair-adult-tabby-cat-miaowing-600nw-2467932527.jpg",
+      disapprove: "https://www.shutterstock.com/image-photo/cat-portrait-grumpy-stare-closeup-260nw-2510635537.jpg"
+    };
+
+    let size = 4; // Default size
+    let totalPieces, correctOrder;
+    let imageURL = "";
+    let selectedPresetIndex = -1;
+    let currentPresets = [];
+    let selectedPiece = null;
+
+    // Preset images
+    const presets = [
+      "https://www.shutterstock.com/image-vector/cute-pig-illustration-kawaii-chibi-600nw-2291790391.jpg",
+      "https://images.template.net/wp-content/uploads/2015/04/Cartoon-Love-Drawing-Template.jpg",
+      "https://i.pinimg.com/736x/53/f8/2f/53f82f3c6b762703fe445f2607ac520f.jpg",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrBpgXgOqO5wp5aFfW3AzVh1DzZxyQjLD_sg&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRUJIM8EIzCtZA2HuzOg3OeXoJUumcCSbTDsA&s",
+      "https://i.pinimg.com/736x/56/f7/4c/56f74cae96a213f70dcc3ed2041dbfcc.jpg"
+    ];
+
+    // Initialize the game
+    function initGame() {
+      setupGridSizeSelector();
+      renderPresetButtons();
+      setCatReaction(CAT_REACTIONS.neutral);
+      setupKeyboardControls();
+    }
+
+    // Set up grid size selector
+    function setupGridSizeSelector() {
+      gridSizeSelect.innerHTML = '';
+      for (let i = 3; i <= 9; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = `${i}x${i}`;
+        if (i === size) option.selected = true;
+        gridSizeSelect.appendChild(option);
+      }
+      
+      gridSizeSelect.addEventListener("change", () => {
+        size = parseInt(gridSizeSelect.value);
+        if (imageURL) initializePuzzle();
+      });
+    }
+
+    // Render preset image buttons
+    function renderPresetButtons() {
+      presetContainer.innerHTML = "";
+      currentPresets = shuffleArray([...presets]);
+      currentPresets.forEach((url, index) => {
+        const btn = document.createElement("div");
+        btn.className = "preset-button";
+        btn.innerHTML = `<span>${index + 1}</span><img src="${url}" alt="Puzzle ${index + 1}">`;
+        btn.onclick = () => {
+          document.querySelectorAll(".preset-button").forEach(b => {
+            b.classList.remove("selected");
+            b.classList.remove("show-image");
+          });
+          btn.classList.add("selected");
+          selectedPresetIndex = index;
+          imageURL = url;
+          initializePuzzle();
+        };
+        presetContainer.appendChild(btn);
+      });
+    }
+
+    // Fisher-Yates shuffle algorithm
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // Set cat reaction with animation
+    function setCatReaction(gifUrl) {
+      reaction.style.backgroundImage = `url('${gifUrl}')`;
+      reaction.classList.add("animate-cat");
+      setTimeout(() => {
+        reaction.classList.remove("animate-cat");
+      }, 500);
+    }
+
+    // Set up keyboard controls for rotation
+    function setupKeyboardControls() {
+      document.addEventListener("keydown", (e) => {
+        if (!selectedPiece) return;
+        
+        if (e.key === "ArrowLeft") {
+          rotatePiece(selectedPiece, -90);
+        } else if (e.key === "ArrowRight") {
+          rotatePiece(selectedPiece, 90);
+        }
+      });
+    }
+
+    // Rotate a puzzle piece
+    function rotatePiece(piece, degrees) {
+      const currentRotation = parseInt(piece.getAttribute("data-rotation")) || 0;
+      const newRotation = currentRotation + degrees;
+      piece.setAttribute("data-rotation", newRotation);
+      piece.style.transform = `rotate(${newRotation}deg)`;
+    }
+
+    // Initialize puzzle with current image
+    function initializePuzzle() {
+      board.innerHTML = '';
+      bank.innerHTML = '';
+      playAgainBtn.style.display = "none";
+      selectedPiece = null;
+      resultMessage.textContent = '';
+      
+      // Set up puzzle board grid
+      board.style.gridTemplateColumns = `repeat(${size}, 80px)`;
+      board.style.gridTemplateRows = `repeat(${size}, 80px)`;
+      
+      totalPieces = size * size;
+      correctOrder = Array.from({length: totalPieces}, (_, i) => i);
+
+      // Create drop zones on the board
+      for (let i = 0; i < totalPieces; i++) {
+        const dropZone = document.createElement("div");
+        dropZone.className = "dropzone";
+        dropZone.dataset.index = i;
+        
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          if (!dropZone.firstChild) { // Only highlight if empty
+            dropZone.classList.add("highlight");
+          }
+        });
+        
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("highlight");
+        });
+        
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("highlight");
+          handleDrop(e, dropZone);
+        });
+        
+        board.appendChild(dropZone);
+      }
+
+      // Create puzzle pieces in random order with random rotations
+      shuffleArray(correctOrder).forEach(i => {
+        createPuzzlePiece(i);
+      });
+    }
+
+    // Create a puzzle piece
+    function createPuzzlePiece(index) {
+      const piece = document.createElement("div");
+      piece.className = "piece";
+      
+      // Calculate position in original image
+      const x = index % size;
+      const y = Math.floor(index / size);
+      
+      // Set piece styling
+      piece.style.backgroundImage = `url('${imageURL}')`;
+      piece.style.backgroundSize = `${size * 80}px ${size * 80}px`;
+      piece.style.backgroundPosition = `-${x * 80}px -${y * 80}px`;
+      piece.dataset.id = index;
+      piece.draggable = true;
+      
+      // Set initial size (smaller in bank)
+      piece.style.width = "50px";
+      piece.style.height = "50px";
+      
+      // Add random rotation (0, 90, 180, or 270 degrees)
+      const rotation = [0, 90, 180, 270][Math.floor(Math.random() * 4)];
+      piece.setAttribute("data-rotation", rotation);
+      piece.style.transform = `rotate(${rotation}deg)`;
+      
+      // Add event listeners
+      piece.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", piece.dataset.id);
+        setTimeout(() => {
+          piece.style.opacity = "0.4";
+        }, 0);
+      });
+      
+      piece.addEventListener("dragend", (e) => {
+        piece.style.opacity = "1";
+        // If dropped outside the board, return to original position
+        if (!e.target.closest('#puzzle-board') && piece.parentElement.classList.contains("dropzone")) {
+          const originalDropzone = document.querySelector(`.dropzone[data-index="${piece.dataset.id}"]`);
+          if (originalDropzone) {
+            originalDropzone.appendChild(piece);
+          }
+        }
+      });
+      
+      piece.addEventListener("click", () => {
+        document.querySelectorAll(".piece").forEach(p => p.classList.remove("selected"));
+        piece.classList.add("selected");
+        selectedPiece = piece;
+      });
+      
+      // Add to piece bank
+      bank.appendChild(piece);
+    }
+
+    // Handle dropping a piece on the board
+    function handleDrop(e, dropZone) {
+      const pieceId = e.dataTransfer.getData("text/plain");
+      const piece = document.querySelector(`[data-id="${pieceId}"]`);
+      
+      if (!piece) return;
+      
+      // If there's already a piece in this dropzone and it's not the current piece, cancel
+      if (dropZone.firstChild && dropZone.firstChild !== piece) {
+        return;
+      }
+      
+      // If piece is coming from another dropzone, move it
+      if (piece.parentElement.classList.contains("dropzone")) {
+        // Remove from old position
+        piece.parentElement.classList.remove("occupied");
+        
+        // Move to new position
+        dropZone.appendChild(piece);
+        dropZone.classList.add("occupied");
+        
+        // Adjust size
+        piece.style.width = "100%";
+        piece.style.height = "100%";
+        piece.style.opacity = "1";
+      } 
+      // If piece is coming from bank
+      else if (!dropZone.firstChild) {
+        // Create a new piece for the board
+        const newPiece = piece.cloneNode(true);
+        newPiece.style.width = "100%";
+        newPiece.style.height = "100%";
+        newPiece.style.opacity = "1";
+        newPiece.style.transform = piece.style.transform;
+        newPiece.setAttribute("data-rotation", piece.getAttribute("data-rotation"));
+        
+        // Make draggable
+        newPiece.draggable = true;
+        newPiece.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", newPiece.dataset.id);
+          setTimeout(() => {
+            newPiece.style.opacity = "0.4";
+          }, 0);
+        });
+        
+        newPiece.addEventListener("dragend", (e) => {
+          newPiece.style.opacity = "1";
+          // If dropped outside board, return to original position
+          if (!e.target.closest('#puzzle-board')) {
+            dropZone.appendChild(newPiece);
+          }
+        });
+        
+        newPiece.addEventListener("click", () => {
+          document.querySelectorAll(".piece").forEach(p => p.classList.remove("selected"));
+          newPiece.classList.add("selected");
+          selectedPiece = newPiece;
+        });
+        
+        // Add to dropzone and mark as occupied
+        dropZone.appendChild(newPiece);
+        dropZone.classList.add("occupied");
+        
+        // Remove original from bank
+        piece.remove();
+      }
+      
+      // Show reaction
+      showPlacementFeedback(parseInt(pieceId), parseInt(dropZone.dataset.index));
+    }
+
+    // Show feedback based on piece placement
+   function showPlacementFeedback(pieceId, dropIndex) {
+  const correctPos = pieceId;
+  const distance = Math.abs(correctPos - dropIndex);
+  
+  // Calculate row and column positions
+  const correctRow = Math.floor(correctPos / size);
+  const correctCol = correctPos % size;
+  const dropRow = Math.floor(dropIndex / size);
+  const dropCol = dropIndex % size;
+  
+  // Check if in immediate surrounding (disapprove zone)
+  const isImmediateSurrounding = 
+    (Math.abs(dropRow - correctRow)) <= 1 && 
+    (Math.abs(dropCol - correctCol)) <= 1 &&
+    dropIndex !== correctPos;
+  
+  // Check if in secondary surrounding (neutral zone)
+  const isSecondarySurrounding = 
+    (Math.abs(dropRow - correctRow) <= 2 && 
+     Math.abs(dropCol - correctCol) <= 2) &&
+    !isImmediateSurrounding &&
+    dropIndex !== correctPos;
+  
+  let reactionType;
+  if (dropIndex === correctPos) {
+    reactionType = "incorrect"; // Placed in correct box - WRONG
+  } else if (isImmediateSurrounding) {
+    reactionType = "disapprove"; // Immediate surrounding boxes
+  } else if (isSecondarySurrounding) {
+    reactionType = "neutral"; // Secondary surrounding boxes
+  } else {
+    reactionType = "correct"; // Far away - CORRECT
+  }
+  
+  setCatReaction(CAT_REACTIONS[reactionType]);
+}
+
+    // Check the solution
+    function checkSolution() {
+      const pieces = board.querySelectorAll(".dropzone > .piece");
+      if (pieces.length !== totalPieces) {
+        resultMessage.textContent = "Please place all pieces on the board!";
+        setCatReaction(CAT_REACTIONS.incorrect);
+        return;
+      }
+
+      let correctCount = 0;
+      board.querySelectorAll(".dropzone").forEach((zone, i) => {
+        const piece = zone.firstChild;
+        if (piece && parseInt(piece.dataset.id) === i) {
+          correctCount++;
+        }
+      });
+
+      if (correctCount === 0) {
+        // All pieces are wrong - puzzle solved!
+        resultMessage.textContent = "🎉 PUZZLE SOLVED!";
+        setCatReaction(CAT_REACTIONS.correct);
+        playAgainBtn.style.display = "block";
+        
+        // Show the solved image in the preset buttons
+        if (selectedPresetIndex >= 0) {
+          const solvedBtn = presetContainer.children[selectedPresetIndex];
+          solvedBtn.classList.add("show-image");
+        }
+      } else if (correctCount === totalPieces) {
+        // All pieces are correct - also solved (though this shouldn't happen with random rotations)
+        resultMessage.textContent = "😡 SOLVE WRONG!";
+        setCatReaction(CAT_REACTIONS.incorrect);
+        playAgainBtn.style.display = "block";
+        
+        if (selectedPresetIndex >= 0) {
+          const solvedBtn = presetContainer.children[selectedPresetIndex];
+          solvedBtn.classList.add("show-image");
+        }
+      } else {
+        // Some pieces are correct - reset the puzzle
+        alert("❌ Wrong! The puzzle will reset.");
+        //resultMessage.textContent = "❌ Wrong! The puzzle will reset.";
+        setCatReaction(CAT_REACTIONS.incorrect);
+        setTimeout(() => {
+          initializePuzzle();
+        }, 1500);
+      }
+    }
+
+    // Event listeners for buttons
+    submitBtn.addEventListener("click", checkSolution);
+    
+    resetBtn.addEventListener("click", () => {
+      if (imageURL) initializePuzzle();
+      setCatReaction(CAT_REACTIONS.neutral);
+      resultMessage.textContent = '';
+    });
+    
+    playAgainBtn.addEventListener("click", () => {
+      // Reset all preset buttons to show numbers
+      document.querySelectorAll(".preset-button").forEach(btn => {
+        btn.classList.remove("show-image");
+      });
+      window.location.reload();
+    });
+
+    // Initialize the game
+    initGame();
+  </script>
+</body>
+</html>
